@@ -75,6 +75,7 @@ class _PlayTabState extends ConsumerState<PlayTab> {
             const SizedBox(height: 32),
             DropdownButtonFormField<String>(
               value: _selectedSubject,
+              isExpanded: true,
               decoration: const InputDecoration(labelText: 'Categoría (Obligatoria)', prefixIcon: Icon(Icons.category)),
               items: _subjects.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
               onChanged: (v) => setState(() => _selectedSubject = v),

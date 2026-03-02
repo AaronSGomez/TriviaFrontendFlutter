@@ -16,7 +16,10 @@ class GameController extends ChangeNotifier {
   int questionIndex = 0;
   int? selectedAnswer;
   bool? isCorrect;
+  String? backendExplanation;
+  String? correctBackendOption;
   bool isFinished = false;
+  DateTime? _questionStartTime;
 
   GameController(this.ref, this.sessionId) {
     _loadNextQuestion();
@@ -26,6 +29,8 @@ class GameController extends ChangeNotifier {
     isLoading = true;
     selectedAnswer = null;
     isCorrect = null;
+    backendExplanation = null;
+    correctBackendOption = null;
     notifyListeners();
 
     try {
@@ -36,6 +41,7 @@ class GameController extends ChangeNotifier {
       } else {
         currentQuestion = question;
         questionIndex++;
+        _questionStartTime = DateTime.now();
       }
     } catch (e) {
       // Error handling
@@ -53,15 +59,29 @@ class GameController extends ChangeNotifier {
 
     try {
       final repository = ref.read(gameRepositoryProvider);
-      isCorrect = await repository.submitAnswer(sessionId, answerIndex);
-      notifyListeners();
 
-      await Future.delayed(const Duration(milliseconds: 1500));
-      await _loadNextQuestion();
+      final selectedOptionStr = ['optionA', 'optionB', 'optionC', 'optionD'][answerIndex - 1];
+      final questionId = currentQuestion!.id!;
+      final timeElapsedSeconds = _questionStartTime != null
+          ? DateTime.now().difference(_questionStartTime!).inSeconds
+          : 0;
+
+      final result = await repository.submitAnswer(sessionId, questionId, selectedOptionStr, timeElapsedSeconds);
+      isCorrect = result.isCorrect;
+      backendExplanation = result.explanation;
+      correctBackendOption = result.correctAnswer;
+
+      notifyListeners();
     } catch (e) {
       selectedAnswer = null;
       isCorrect = null;
+      backendExplanation = null;
+      correctBackendOption = null;
       notifyListeners();
     }
+  }
+
+  void nextQuestion() {
+    _loadNextQuestion();
   }
 }

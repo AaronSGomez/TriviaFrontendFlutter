@@ -11,7 +11,7 @@ class Player {
       id: json['id'] as String,
       name: json['name'] as String,
       mail: json['mail'] as String,
-      totalScore: json['totalScore'] as int? ?? 0,
+      totalScore: json['score'] as int? ?? json['totalScore'] as int? ?? 0,
     );
   }
 

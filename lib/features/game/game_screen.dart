@@ -44,7 +44,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     return Scaffold(
       appBar: AppBar(title: Text('Pregunta ${controller.questionIndex}'), automaticallyImplyLeading: false),
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             Expanded(
@@ -56,18 +56,20 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                     elevation: 10,
                     child: Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Text(
-                        question.statement,
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
+                      padding: const EdgeInsets.all(20.0),
+                      child: SingleChildScrollView(
+                        child: Text(
+                          question.statement,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             ...[1, 2, 3, 4].map((index) {
               final optionText = index == 1
                   ? question.optionA
@@ -78,13 +80,16 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   : question.optionD;
               Color backgroundColor = AppTheme.surfaceColor;
 
-              if (controller.selectedAnswer == index) {
-                if (controller.isCorrect == null) {
-                  backgroundColor = Colors.blueGrey;
-                } else if (controller.isCorrect == true) {
-                  backgroundColor = AppTheme.successColor;
-                } else {
-                  backgroundColor = AppTheme.errorColor;
+              if (controller.selectedAnswer != null) {
+                if (index == controller.selectedAnswer) {
+                  // The button the user clicked
+                  backgroundColor = controller.isCorrect == true ? AppTheme.successColor : AppTheme.errorColor;
+                } else if (controller.correctBackendOption != null) {
+                  // Another button that happens to be the correct one
+                  final optionKeys = ['optionA', 'optionB', 'optionC', 'optionD'];
+                  if (optionKeys[index - 1] == controller.correctBackendOption) {
+                    backgroundColor = AppTheme.successColor;
+                  }
                 }
               }
 
@@ -92,7 +97,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: SizedBox(
                   width: double.infinity,
-                  height: 65,
+                  height: 56,
                   child: ElevatedButton(
                     onPressed: controller.selectedAnswer != null
                         ? null
@@ -100,15 +105,48 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: backgroundColor,
                       foregroundColor: Colors.white,
+                      disabledBackgroundColor: backgroundColor, // Maintain color when disabled
+                      disabledForegroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                     ),
-                    child: Text(optionText, style: const TextStyle(fontSize: 18), textAlign: TextAlign.center),
+                    child: Text(optionText, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
                   ),
                 ),
               );
             }),
-            const SizedBox(height: 24),
+            if (controller.selectedAnswer != null) ...[
+              const SizedBox(height: 8),
+              if (controller.backendExplanation != null && controller.backendExplanation!.isNotEmpty)
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blueGrey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.blueGrey.withOpacity(0.3)),
+                    ),
+                    child: SingleChildScrollView(
+                      child: Text(controller.backendExplanation!, style: const TextStyle(fontSize: 14)),
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () => ref.read(gameControllerProvider(widget.sessionId)).nextQuestion(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('Siguiente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
           ],
         ),
       ),

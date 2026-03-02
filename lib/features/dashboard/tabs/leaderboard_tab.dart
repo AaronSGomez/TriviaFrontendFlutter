@@ -27,8 +27,8 @@ class LeaderboardTab extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(vertical: 16),
             itemCount: players.length,
             itemBuilder: (context, index) {
-              final player = players[index];
-              final isMe = player.id == currentPlayerId;
+              final session = players[index];
+              final isMe = session.playerId == currentPlayerId;
 
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -45,10 +45,13 @@ class LeaderboardTab extends ConsumerWidget {
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ),
-                  title: Text(player.name, style: TextStyle(fontWeight: isMe ? FontWeight.bold : FontWeight.normal)),
-                  subtitle: Text(player.mail),
+                  title: Text(
+                    isMe ? 'Tú (${session.subject})' : 'Jugador (${session.subject})',
+                    style: TextStyle(fontWeight: isMe ? FontWeight.bold : FontWeight.normal),
+                  ),
+                  subtitle: Text('Estado: ${session.status}'),
                   trailing: Text(
-                    '${player.totalScore} pts',
+                    '${session.score} pts',
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.secondaryColor),
                   ),
                 ),

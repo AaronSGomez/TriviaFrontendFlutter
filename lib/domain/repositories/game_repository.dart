@@ -4,6 +4,7 @@ import '../../core/network/api_client.dart';
 import '../models/game_session.dart';
 import '../models/question.dart';
 import '../models/game_result.dart';
+import '../models/answer_result.dart';
 
 final gameRepositoryProvider = Provider<GameRepository>((ref) {
   return GameRepository(ref.watch(dioProvider));
@@ -33,14 +34,26 @@ class GameRepository {
     }
   }
 
-  Future<bool> submitAnswer(String sessionId, int answerIndex) async {
-    final response = await _dio.post('/api/v1/session/$sessionId/answer', data: {'answer': answerIndex});
-    // Returns bool if correct
-    return response.data['isCorrect'] as bool? ?? false;
+  Future<AnswerResult> submitAnswer(
+    String sessionId,
+    int questionId,
+    String selectedOption,
+    int timeElapsedSeconds,
+  ) async {
+    final response = await _dio.post(
+      '/api/v1/session/$sessionId/answer',
+      data: {'questionId': questionId, 'selectedOption': selectedOption, 'timeElapsedSeconds': timeElapsedSeconds},
+    );
+    return AnswerResult.fromJson(response.data);
   }
 
   Future<GameResult> finishSession(String sessionId) async {
     final response = await _dio.post('/api/v1/session/$sessionId/finish');
     return GameResult.fromJson(response.data);
+  }
+
+  Future<List<GameSession>> getLeaderboard() async {
+    final response = await _dio.get('/api/v1/session/leaderboard');
+    return (response.data as List).map((x) => GameSession.fromJson(x)).toList();
   }
 }
