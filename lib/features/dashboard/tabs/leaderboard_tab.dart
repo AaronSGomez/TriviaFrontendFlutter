@@ -46,7 +46,7 @@ class LeaderboardTab extends ConsumerWidget {
                     ),
                   ),
                   title: Text(
-                    isMe ? 'Tú (${session.subject})' : 'Jugador (${session.subject})',
+                    isMe ? 'Tú (${session.subject})' : '${session.playerName ?? 'Jugador'} (${session.subject})',
                     style: TextStyle(fontWeight: isMe ? FontWeight.bold : FontWeight.normal),
                   ),
                   subtitle: Text('Estado: ${session.status}'),

@@ -60,7 +60,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       child: SingleChildScrollView(
                         child: Text(
                           question.statement,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -83,7 +85,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               if (controller.selectedAnswer != null) {
                 if (index == controller.selectedAnswer) {
                   // The button the user clicked
-                  backgroundColor = controller.isCorrect == true ? AppTheme.successColor : AppTheme.errorColor;
+                  if (controller.isCorrect == null) {
+                    backgroundColor = AppTheme.primaryColor;
+                  } else {
+                    backgroundColor = controller.isCorrect! ? AppTheme.successColor : AppTheme.errorColor;
+                  }
                 } else if (controller.correctBackendOption != null) {
                   // Another button that happens to be the correct one
                   final optionKeys = ['optionA', 'optionB', 'optionC', 'optionD'];
@@ -110,7 +116,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                     ),
-                    child: Text(optionText, style: const TextStyle(fontSize: 15), textAlign: TextAlign.center),
+                    child: (controller.selectedAnswer == index && controller.isCorrect == null)
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : Text(
+                            optionText,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                            textAlign: TextAlign.center,
+                          ),
                   ),
                 ),
               );
@@ -127,7 +143,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       border: Border.all(color: Colors.blueGrey.withOpacity(0.3)),
                     ),
                     child: SingleChildScrollView(
-                      child: Text(controller.backendExplanation!, style: const TextStyle(fontSize: 14)),
+                      child: Text(
+                        controller.backendExplanation!,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   ),
                 ),

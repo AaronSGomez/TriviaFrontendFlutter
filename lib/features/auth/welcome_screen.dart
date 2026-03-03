@@ -57,11 +57,16 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     children: [
                       const Hero(
                         tag: 'logo',
-                        child: Icon(Icons.videogame_asset, size: 100, color: Colors.white),
+                        child: Image(
+                          image: AssetImage('lib/core/assets/damtrivia.png'),
+                          width: 150,
+                          height: 150,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'LevelUp42 Trivia',
+                        'Test de Estudios DAM 2026',
                         style: Theme.of(
                           context,
                         ).textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),

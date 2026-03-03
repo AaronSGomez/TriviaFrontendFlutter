@@ -74,6 +74,16 @@ class _AddQuestionTabState extends ConsumerState<AddQuestionTab> {
           const SnackBar(content: Text('¡Pregunta añadida con éxito!'), backgroundColor: AppTheme.successColor),
         );
         _formKey.currentState!.reset();
+
+        // Manual cleanup of text controllers
+        _statementController.clear();
+        _topicController.clear();
+        _optAController.clear();
+        _optBController.clear();
+        _optCController.clear();
+        _optDController.clear();
+        _explanationController.clear();
+
         setState(() {
           _selectedSubject = null;
           _correctIndex = 1;

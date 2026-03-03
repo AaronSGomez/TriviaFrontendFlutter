@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme.dart';
 import '../../../domain/repositories/game_repository.dart';
 import '../../auth/auth_controller.dart';
+import '../providers/subjects_provider.dart';
 
 class PlayTab extends ConsumerStatefulWidget {
   const PlayTab({super.key});
@@ -17,20 +18,6 @@ class _PlayTabState extends ConsumerState<PlayTab> {
   final _formKey = GlobalKey<FormState>();
   String? _selectedSubject; // Nuevo dropdown state
 
-  static const _subjects = [
-    'Desarrollo de interfaces',
-    'Acceso a datos',
-    'Fundamentos de computación',
-    'Entornos de desarrollo',
-    'Itp 2',
-    'Programación de servicios y procesos',
-    'Programación multimedia y dispositivos  móviles',
-    'Sistemas de gestión empresarial',
-    'Sostenibilidad',
-    'Digitalización',
-    'Ingles',
-  ];
-
   Future<void> _startGame() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -41,7 +28,7 @@ class _PlayTabState extends ConsumerState<PlayTab> {
     try {
       final session = await ref
           .read(gameRepositoryProvider)
-          .startSession(player.id, _selectedSubject!, 3); // Hardcoded to 30
+          .startSession(player.id, _selectedSubject!, 30); // Hardcoded to 30
       if (mounted) {
         context.go('/game', extra: session.id);
       }
@@ -65,7 +52,12 @@ class _PlayTabState extends ConsumerState<PlayTab> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.sports_esports, size: 100, color: AppTheme.primaryColor),
+            const Image(
+              image: AssetImage('lib/core/assets/damtrivia.png'),
+              width: 180,
+              height: 180,
+              fit: BoxFit.contain,
+            ),
             const SizedBox(height: 32),
             Text(
               'Prueba de Nivel (30 Preguntas)',
@@ -73,14 +65,48 @@ class _PlayTabState extends ConsumerState<PlayTab> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            DropdownButtonFormField<String>(
-              value: _selectedSubject,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Categoría (Obligatoria)', prefixIcon: Icon(Icons.category)),
-              items: _subjects.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-              onChanged: (v) => setState(() => _selectedSubject = v),
-              validator: (v) => v == null || v.isEmpty ? 'Debes seleccionar una categoría' : null,
-            ),
+            ref
+                .watch(subjectsProvider)
+                .when(
+                  data: (subjects) {
+                    if (subjects.isEmpty) {
+                      return const Text('No hay preguntas disponibles todavía.');
+                    }
+
+                    // Si el sujeto seleccionado ya no está en la lista de sujetos, resetéalo
+                    if (_selectedSubject != null && !subjects.any((s) => s.name == _selectedSubject)) {
+                      _selectedSubject = null;
+                    }
+
+                    return DropdownButtonFormField<String>(
+                      value: _selectedSubject,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Categoría (Obligatoria)',
+                        prefixIcon: Icon(Icons.category),
+                      ),
+                      items: subjects.map((s) {
+                        return DropdownMenuItem(
+                          value: s.name,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(child: Text(s.name, overflow: TextOverflow.ellipsis)),
+                              Text(
+                                '${s.count}',
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.secondaryColor),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (v) => setState(() => _selectedSubject = v),
+                      validator: (v) => v == null || v.isEmpty ? 'Debes seleccionar una categoría' : null,
+                    );
+                  },
+                  loading: () => const CircularProgressIndicator(),
+                  error: (e, st) => Text('Error cargando categorías: $e'),
+                ),
             const SizedBox(height: 48),
             SizedBox(
               width: double.infinity,

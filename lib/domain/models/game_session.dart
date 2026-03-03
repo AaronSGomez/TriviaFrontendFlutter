@@ -11,6 +11,7 @@ class GameSession {
   final String status;
   final double grade;
   final bool passed;
+  final String? playerName;
 
   const GameSession({
     required this.id,
@@ -25,6 +26,7 @@ class GameSession {
     required this.status,
     required this.grade,
     required this.passed,
+    this.playerName,
   });
 
   factory GameSession.fromJson(Map<String, dynamic> json) {
@@ -41,6 +43,7 @@ class GameSession {
       status: json['status'] as String? ?? 'UNKNOWN',
       grade: (json['grade'] as num?)?.toDouble() ?? 0.0,
       passed: json['passed'] as bool? ?? false,
+      playerName: json['playerName'] as String?,
     );
   }
 
@@ -57,5 +60,6 @@ class GameSession {
     'status': status,
     'grade': grade,
     'passed': passed,
+    if (playerName != null) 'playerName': playerName,
   };
 }

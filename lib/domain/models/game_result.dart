@@ -9,7 +9,7 @@ class GameResult {
     return GameResult(
       score: json['score'] as int,
       grade: (json['grade'] as num).toDouble(),
-      isPassed: json['isPassed'] as bool,
+      isPassed: json['passed'] as bool? ?? false,
     );
   }
 

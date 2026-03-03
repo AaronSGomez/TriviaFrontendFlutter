@@ -12,15 +12,17 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  static const bool _isAdmin = bool.fromEnvironment('IS_ADMIN', defaultValue: false);
+
   int _currentIndex = 0;
 
-  final List<Widget> _tabs = const [PlayTab(), LeaderboardTab(), AddQuestionTab()];
+  final List<Widget> _tabs = [const PlayTab(), const LeaderboardTab(), if (_isAdmin) const AddQuestionTab()];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('LevelUp42 Trivia', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('LevelUp42 by AaronSGomez', style: TextStyle(fontWeight: FontWeight.normal, fontSize: 10)),
         elevation: 0,
       ),
       body: _tabs[_currentIndex],
@@ -31,10 +33,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.play_circle_fill), label: 'Jugar'),
-            BottomNavigationBarItem(icon: Icon(Icons.leaderboard), label: 'Ranking'),
-            BottomNavigationBarItem(icon: Icon(Icons.add_circle), label: 'Aportar'),
+          items: [
+            const BottomNavigationBarItem(icon: Icon(Icons.play_circle_fill), label: 'Jugar'),
+            const BottomNavigationBarItem(icon: Icon(Icons.leaderboard), label: 'Ranking'),
+            if (_isAdmin) const BottomNavigationBarItem(icon: Icon(Icons.add_circle), label: 'Aportar'),
           ],
         ),
       ),
