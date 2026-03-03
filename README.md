@@ -49,7 +49,8 @@ Este proyecto requiere un archivo `.env` en la raíz (junto al `pubspec.yaml`) p
 # Para desarrollo local con emulador
 BASE_URL=http://localhost:8080
 
-# O la URL de producción, también puedes solicitarme acceso a mi API en java spring boot con arquitectura hexagonal.
+# O la URL de producción
+# También puedes solicitarme acceso a mi API en java spring boot con arquitectura hexagonal.
 # BASE_URL=https://tu-api-en-produccion.com
 ```
 
