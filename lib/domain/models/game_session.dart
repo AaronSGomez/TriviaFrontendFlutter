@@ -29,6 +29,38 @@ class GameSession {
     this.playerName,
   });
 
+  GameSession copyWith({
+    String? id,
+    String? playerId,
+    String? subject,
+    int? totalQuestions,
+    int? answeredQuestions,
+    int? correctAnswers,
+    int? score,
+    DateTime? startedAt,
+    DateTime? finishedAt,
+    String? status,
+    double? grade,
+    bool? passed,
+    String? playerName,
+  }) {
+    return GameSession(
+      id: id ?? this.id,
+      playerId: playerId ?? this.playerId,
+      subject: subject ?? this.subject,
+      totalQuestions: totalQuestions ?? this.totalQuestions,
+      answeredQuestions: answeredQuestions ?? this.answeredQuestions,
+      correctAnswers: correctAnswers ?? this.correctAnswers,
+      score: score ?? this.score,
+      startedAt: startedAt ?? this.startedAt,
+      finishedAt: finishedAt ?? this.finishedAt,
+      status: status ?? this.status,
+      grade: grade ?? this.grade,
+      passed: passed ?? this.passed,
+      playerName: playerName ?? this.playerName,
+    );
+  }
+
   factory GameSession.fromJson(Map<String, dynamic> json) {
     return GameSession(
       id: json['id'] as String,

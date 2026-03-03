@@ -4,9 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme.dart';
 import 'core/router/app_router.dart';
 import 'core/providers.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   final sharedPreferences = await SharedPreferences.getInstance();
 
   runApp(

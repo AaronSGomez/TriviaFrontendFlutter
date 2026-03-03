@@ -66,10 +66,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'Test de Estudios DAM 2026',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+                        'Test-generator!! DAM',
+                        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(height: 48),
                       if (player != null) ...[

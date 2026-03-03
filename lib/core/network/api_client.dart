@@ -1,7 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-const String kBaseUrl = 'https://triviahex.duckdns.org';
+String get kBaseUrl => dotenv.env['BASE_URL'] ?? 'http://localhost:8080';
 
 final dioProvider = Provider<Dio>((ref) {
   final requestOptions = BaseOptions(
