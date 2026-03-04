@@ -15,20 +15,46 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _mailController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  bool _isRegisterMode = true;
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _mailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   void _submit() async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        await ref.read(authControllerProvider.notifier).login(_nameController.text, _mailController.text);
-        if (mounted) context.go('/dashboard');
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.errorColor));
-        }
+    if (!_formKey.currentState!.validate()) return;
+    try {
+      final controller = ref.read(authControllerProvider.notifier);
+      if (_isRegisterMode) {
+        await controller.register(_nameController.text.trim(), _mailController.text.trim(), _passwordController.text);
+      } else {
+        await controller.login(_mailController.text.trim(), _passwordController.text);
+      }
+      if (mounted) context.go('/dashboard');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${_friendlyError(e.toString())}'), backgroundColor: AppTheme.errorColor),
+        );
       }
     }
+  }
+
+  String _friendlyError(String raw) {
+    if (raw.contains('401') || raw.contains('Unauthorized')) {
+      return 'Correo o contraseña incorrectos.';
+    }
+    if (raw.contains('409') || raw.contains('Conflict')) {
+      return 'Ya existe una cuenta con ese correo.';
+    }
+    return raw;
   }
 
   @override
@@ -46,9 +72,6 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                 builder: (context) {
                   if (authState.isLoading) {
                     return const CircularProgressIndicator(color: Colors.white);
-                  }
-                  if (authState.error != null) {
-                    return Text('Error al cargar: ${authState.error}', style: const TextStyle(color: Colors.white));
                   }
 
                   final player = authState.player;
@@ -109,35 +132,78 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                               child: Column(
                                 children: [
                                   Text(
-                                    'Registro',
+                                    _isRegisterMode ? 'Registro' : 'Iniciar sesión',
                                     style: Theme.of(
                                       context,
                                     ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(height: 24),
-                                  TextFormField(
-                                    controller: _nameController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Nombre de usuario',
-                                      prefixIcon: Icon(Icons.person),
+                                  // Name field — only in register mode
+                                  if (_isRegisterMode) ...[
+                                    TextFormField(
+                                      controller: _nameController,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Nombre de usuario',
+                                        prefixIcon: Icon(Icons.person),
+                                      ),
+                                      validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
                                     ),
-                                    validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                                  ),
-                                  const SizedBox(height: 16),
+                                    const SizedBox(height: 16),
+                                  ],
                                   TextFormField(
                                     controller: _mailController,
                                     decoration: const InputDecoration(
                                       labelText: 'Correo electrónico',
                                       prefixIcon: Icon(Icons.email),
                                     ),
-                                    validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                                    keyboardType: TextInputType.emailAddress,
+                                    validator: (v) {
+                                      if (v == null || v.isEmpty) return 'Requerido';
+                                      final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                                      if (!emailRegex.hasMatch(v)) return 'Formato de correo no válido';
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
+                                  TextFormField(
+                                    controller: _passwordController,
+                                    decoration: InputDecoration(
+                                      labelText: 'Contraseña',
+                                      prefixIcon: const Icon(Icons.lock),
+                                      suffixIcon: IconButton(
+                                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                      ),
+                                    ),
+                                    obscureText: _obscurePassword,
+                                    validator: (v) {
+                                      if (v == null || v.isEmpty) return 'Requerido';
+                                      if (_isRegisterMode && v.length < 6) return 'Mínimo 6 caracteres';
+                                      return null;
+                                    },
                                   ),
                                   const SizedBox(height: 32),
                                   SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton(
                                       onPressed: _submit,
-                                      child: const Text('Comenzar', style: TextStyle(fontSize: 18)),
+                                      child: Text(
+                                        _isRegisterMode ? 'Registrarse' : 'Entrar',
+                                        style: const TextStyle(fontSize: 18),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextButton(
+                                    onPressed: () => setState(() {
+                                      _isRegisterMode = !_isRegisterMode;
+                                      _formKey.currentState?.reset();
+                                    }),
+                                    child: Text(
+                                      _isRegisterMode
+                                          ? '¿Ya tienes cuenta? Inicia sesión'
+                                          : '¿No tienes cuenta? Regístrate',
+                                      style: TextStyle(color: AppTheme.primaryColor),
                                     ),
                                   ),
                                 ],

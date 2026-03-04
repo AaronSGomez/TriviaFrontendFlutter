@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme.dart';
+import '../../../core/config.dart';
 import '../../../domain/repositories/question_repository.dart';
 
 class AddQuestionTab extends ConsumerStatefulWidget {
@@ -104,6 +105,27 @@ class _AddQuestionTabState extends ConsumerState<AddQuestionTab> {
 
   @override
   Widget build(BuildContext context) {
+    if (!kIsAdmin) {
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.lock_outline, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text('Acceso restringido', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              SizedBox(height: 8),
+              Text(
+                'Esta función solo está disponible\nen la versión de administrador.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),

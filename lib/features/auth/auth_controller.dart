@@ -22,6 +22,7 @@ class AuthController extends ChangeNotifier {
   static const _playerIdKey = 'player_id';
   static const _playerNameKey = 'player_name';
   static const _playerMailKey = 'player_mail';
+  static const _tokenKey = 'jwt_token';
 
   void _loadPlayer() {
     final prefs = ref.read(sharedPreferencesProvider);
@@ -36,7 +37,7 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> login(String name, String mail) async {
+  Future<void> register(String name, String mail, String password) async {
     isLoading = true;
     error = null;
     notifyListeners();
@@ -45,19 +46,44 @@ class AuthController extends ChangeNotifier {
       final repository = ref.read(authRepositoryProvider);
       final prefs = ref.read(sharedPreferencesProvider);
 
-      final newPlayer = await repository.registerOrLogin(name, mail);
-      await prefs.setString(_playerIdKey, newPlayer.id);
-      await prefs.setString(_playerNameKey, newPlayer.name);
-      await prefs.setString(_playerMailKey, newPlayer.mail);
-
-      player = newPlayer;
+      final result = await repository.register(name, mail, password);
+      await _saveSession(prefs, result);
+      player = result.player;
     } catch (e) {
       error = e.toString();
-      throw e;
+      rethrow;
     } finally {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> login(String mail, String password) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      final prefs = ref.read(sharedPreferencesProvider);
+
+      final result = await repository.login(mail, password);
+      await _saveSession(prefs, result);
+      player = result.player;
+    } catch (e) {
+      error = e.toString();
+      rethrow;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _saveSession(dynamic prefs, AuthResult result) async {
+    await prefs.setString(_playerIdKey, result.player.id);
+    await prefs.setString(_playerNameKey, result.player.name);
+    await prefs.setString(_playerMailKey, result.player.mail);
+    await prefs.setString(_tokenKey, result.token);
   }
 
   Future<void> logout() async {
