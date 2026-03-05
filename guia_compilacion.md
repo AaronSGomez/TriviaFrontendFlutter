@@ -7,6 +7,15 @@ La aplicación utiliza la constante `IS_ADMIN` para determinar qué pestañas mo
 *   Si `IS_ADMIN` es `true`, se muestra la pestaña "Aportar" (Modo Administrador/Profesor).
 *   Si `IS_ADMIN` es `false` (o no se especifica), se oculta la pestaña "Aportar" (Modo Estudiante).
 
+## Configuración Inicial (.env)
+Antes de compilar o ejecutar el proyecto, es necesario crear un archivo `.env` en la raíz de `TriviaFrontendFlutter`. Este archivo no se sube al repositorio por seguridad.
+
+Crea un archivo llamado `.env` y añade la URL base de tu backend:
+```env
+BASE_URL=https://tu-backend-url.com
+```
+*(Si pruebas en local o emulador, usa `BASE_URL=http://localhost:8080` o `BASE_URL=http://10.0.2.2:8080` respectivamente).*
+
 ---
 
 ## 👨‍🎓 Versión Estudiante (Usuarios normales)
