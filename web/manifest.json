@@ -1,6 +1,6 @@
 {
-    "name": "trivia_frontend",
-    "short_name": "trivia_frontend",
+    "name": "DAMTrivia",
+    "short_name": "DAMTrivia",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

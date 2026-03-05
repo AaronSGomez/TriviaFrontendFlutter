@@ -26,6 +26,7 @@ dependencies:
   vibration: ^3.1.8
   flutter_dotenv: ^6.0.0
   flutter_launcher_icons: ^0.13.1
+  window_manager: ^0.5.1
 
 dev_dependencies:
   flutter_test:
@@ -53,5 +54,5 @@ flutter_launcher_icons:
     image_path: "lib/core/assets/favicon.png"
   windows:
     generate: true
-    image_path: "lib/core/assets/icon_windows.ico"
+    image_path: "lib/core/assets/icon_principal.png"
     icon_size: 256
