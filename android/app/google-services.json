@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "318859429456",
+    "project_id": "damtrivia",
+    "storage_bucket": "damtrivia.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:318859429456:android:7fc2e057c011b9efd67355",
+        "android_client_info": {
+          "package_name": "com.levelup42.trivia_frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyJQx01yPpBSW-kN54AgP0Y0lDH6-Fgss"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

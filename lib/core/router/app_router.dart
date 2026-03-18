@@ -1,6 +1,5 @@
 import 'package:go_router/go_router.dart';
-import 'package:flutter/material.dart';
-
+import 'package:firebase_analytics/firebase_analytics.dart';
 // Placeholder screens for routing setup
 import '../../features/auth/welcome_screen.dart';
 import '../../features/dashboard/dashboard_screen.dart';
@@ -9,6 +8,7 @@ import '../../features/game/result_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/',
+  observers: [FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance)],
   routes: [
     GoRoute(path: '/', builder: (context, state) => const WelcomeScreen()),
     GoRoute(path: '/dashboard', builder: (context, state) => const DashboardScreen()),

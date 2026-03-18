@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../providers.dart';
+import 'auth_interceptor.dart';
 
 String get kBaseUrl => dotenv.env['BASE_URL'] ?? 'http://localhost:8080';
 
@@ -28,6 +29,9 @@ final dioProvider = Provider<Dio>((ref) {
       },
     ),
   );
+
+  // Interceptor para manejar tokens caducados (403)
+  dio.interceptors.add(AuthInterceptor(ref));
 
   dio.interceptors.add(
     LogInterceptor(
