@@ -49,6 +49,19 @@ app.*.map.json
 
 # Android related
 android/app/google-services.json
+android/key.properties
+
+# Keystores / certificates
+**/*.jks
+**/*.keystore
+**/*.p12
+**/*.pfx
+**/*.pem
+**/*.key
+
+# Firebase config files
+**/google-services.json
+**/GoogleService-Info.plist
 
 #firebase related
 lib/firebase_options.dart
