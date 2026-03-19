@@ -19,14 +19,93 @@ class AuthRepository {
   /// otherwise uses /api/auth/register.
   Future<AuthResult> register(String name, String mail, String password) async {
     final endpoint = kIsAdmin ? '/api/auth/register/admin' : '/api/auth/register';
-    final response = await _dio.post(endpoint, data: {'name': name, 'mail': mail, 'password': password});
-    return AuthResult.fromJson(response.data);
+    final response = await _postAuth(endpoint, {'name': name, 'mail': mail, 'password': password});
+    return AuthResult.fromJson(response);
   }
 
   /// Logs in an existing player and returns a JWT token + player data.
   Future<AuthResult> login(String mail, String password) async {
-    final response = await _dio.post('/api/auth/login', data: {'mail': mail, 'password': password});
-    return AuthResult.fromJson(response.data);
+    try {
+      final response = await _postAuth('/api/auth/login', {'mail': mail, 'password': password});
+      return AuthResult.fromJson(response);
+    } on AuthException {
+      rethrow;
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 401 || status == 403) {
+        throw const AuthException('invalid-credentials', 'Contraseña o correo incorrectos.');
+      }
+      throw AuthException('login-failed', _extractServerMessage(e.response?.data));
+    } on FormatException {
+      throw const AuthException('invalid-credentials', 'Contraseña o correo incorrectos.');
+    }
+  }
+
+  Future<Map<String, dynamic>> _postAuth(String endpoint, Map<String, dynamic> payload) async {
+    try {
+      final response = await _dio.post(
+        endpoint,
+        data: payload,
+        options: Options(responseType: ResponseType.plain),
+      );
+
+      final status = response.statusCode ?? 0;
+      if (status >= 400) {
+        if (status == 401 || status == 403) {
+          throw const AuthException('invalid-credentials', 'Contraseña o correo incorrectos.');
+        }
+        throw AuthException('server-error', _extractServerMessage(response.data));
+      }
+
+      return _asJsonMap(response.data);
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 401 || status == 403) {
+        throw const AuthException('invalid-credentials', 'Contraseña o correo incorrectos.');
+      }
+      throw AuthException('network-error', _extractServerMessage(e.response?.data));
+    }
+  }
+
+  Map<String, dynamic> _asJsonMap(dynamic rawData) {
+    if (rawData is Map<String, dynamic>) {
+      return rawData;
+    }
+
+    if (rawData is String) {
+      final text = rawData.trim();
+      if (text.isEmpty) {
+        throw const AuthException('empty-response', 'Respuesta vacía del servidor.');
+      }
+
+      try {
+        final decoded = jsonDecode(text);
+        if (decoded is Map<String, dynamic>) {
+          return decoded;
+        }
+      } on FormatException {
+        throw AuthException('bad-response', text);
+      }
+    }
+
+    throw const AuthException('bad-response', 'Respuesta inesperada del servidor.');
+  }
+
+  String _extractServerMessage(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      for (final key in ['message', 'error', 'detail']) {
+        final value = data[key];
+        if (value is String && value.trim().isNotEmpty) {
+          return value;
+        }
+      }
+    }
+
+    if (data is String && data.trim().isNotEmpty) {
+      return data.trim();
+    }
+
+    return 'No fue posible completar la autenticación.';
   }
 
   Future<List<Player>> getRanking() async {
@@ -94,4 +173,14 @@ class AuthResult {
 
     return AuthResult(token: token, player: player);
   }
+}
+
+class AuthException implements Exception {
+  final String code;
+  final String message;
+
+  const AuthException(this.code, this.message);
+
+  @override
+  String toString() => message;
 }

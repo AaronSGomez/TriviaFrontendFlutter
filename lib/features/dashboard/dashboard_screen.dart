@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
-import '../../core/theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../auth/auth_controller.dart';
 import 'tabs/play_tab.dart';
 import 'tabs/leaderboard_tab.dart';
 import 'tabs/add_question_tab.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   static const bool _isAdmin = bool.fromEnvironment('IS_ADMIN', defaultValue: false);
 
   int _currentIndex = 0;
@@ -20,6 +22,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authControllerProvider);
+
+    if (authState.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (authState.player == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.go('/');
+        }
+      });
+      return const Scaffold(body: SizedBox.shrink());
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('LevelUp42 by AaronSGomez', style: TextStyle(fontWeight: FontWeight.normal, fontSize: 10)),

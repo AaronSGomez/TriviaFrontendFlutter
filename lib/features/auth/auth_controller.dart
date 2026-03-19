@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/player.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../core/providers.dart';
+import '../../core/security/jwt_utils.dart';
 
 final authControllerProvider = ChangeNotifierProvider<AuthController>((ref) {
   return AuthController(ref);
@@ -29,9 +30,20 @@ class AuthController extends ChangeNotifier {
     final id = prefs.getString(_playerIdKey);
     final name = prefs.getString(_playerNameKey);
     final mail = prefs.getString(_playerMailKey);
+    final token = prefs.getString(_tokenKey);
 
-    if (id != null && name != null && mail != null) {
+    final hasSessionData = id != null && name != null && mail != null;
+    final hasValidToken = token != null && token.isNotEmpty && !isJwtExpired(token);
+
+    if (hasSessionData && hasValidToken) {
       player = Player(id: id, name: name, mail: mail);
+    } else {
+      // Cleanup inconsistent or expired local session.
+      prefs.remove(_playerIdKey);
+      prefs.remove(_playerNameKey);
+      prefs.remove(_playerMailKey);
+      prefs.remove(_tokenKey);
+      player = null;
     }
     isLoading = false;
     notifyListeners();

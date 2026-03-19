@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
 
 import '../router/app_router.dart';
 import '../../features/auth/auth_controller.dart';
@@ -11,12 +12,11 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    if (err.response?.statusCode == 403) {
-      // 1. Limpiar la sesión completa (Token y estado del Player)
-      // Usamos el controller para asegurar que se limpia tanto SharedPreferences como el estado en memoria
-      ref.read(authControllerProvider.notifier).logout();
+    final statusCode = err.response?.statusCode;
+    if (statusCode == 401 || statusCode == 403) {
+      // Limpiamos sesión y obligamos a autenticación de nuevo.
+      unawaited(ref.read(authControllerProvider.notifier).logout());
 
-      // 2. Ejecutar la Redirección al Login borrando el historial
       router.go('/');
     }
 

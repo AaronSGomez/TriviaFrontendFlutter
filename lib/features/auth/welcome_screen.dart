@@ -40,20 +40,33 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       if (mounted) context.go('/dashboard');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${_friendlyError(e.toString())}'), backgroundColor: AppTheme.errorColor),
-        );
+        final message = _friendlyError(e.toString());
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message), backgroundColor: AppTheme.errorColor));
       }
     }
   }
 
   String _friendlyError(String raw) {
-    if (raw.contains('401') || raw.contains('Unauthorized')) {
-      return 'Correo o contraseña incorrectos.';
+    final lower = raw.toLowerCase();
+
+    if (lower.contains('contraseña o correo incorrectos') ||
+        lower.contains('invalid-credentials') ||
+        lower.contains('401') ||
+        lower.contains('unauthorized') ||
+        lower.contains('formatexception')) {
+      return 'Contraseña incorrecta. Verifica tus credenciales e inténtalo de nuevo.';
     }
-    if (raw.contains('409') || raw.contains('Conflict')) {
+
+    if (lower.contains('409') || lower.contains('conflict')) {
       return 'Ya existe una cuenta con ese correo.';
     }
+
+    if (lower.contains('token caducado') || lower.contains('no hay sesión activa')) {
+      return 'Tu sesión ha expirado. Inicia sesión o regístrate para continuar.';
+    }
+
     return raw;
   }
 
