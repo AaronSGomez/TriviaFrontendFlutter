@@ -17,6 +17,8 @@ class GameScreen extends ConsumerStatefulWidget {
 class _GameScreenState extends ConsumerState<GameScreen> {
   bool _navigated = false;
 
+  static final RegExp _statementImagePattern = RegExp(r'^\s*\[IMAGE:([^\]]+)\]\s*', caseSensitive: false);
+
   @override
   Widget build(BuildContext context) {
     final controller = ref.watch(gameControllerProvider(widget.sessionId));
@@ -41,6 +43,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final question = controller.currentQuestion;
     if (question == null) return const Scaffold();
 
+    final parsedStatement = _parseStatement(question.statement);
+
     return Scaffold(
       appBar: AppBar(title: Text('Pregunta ${controller.questionIndex}'), automaticallyImplyLeading: false),
       body: Padding(
@@ -55,15 +59,27 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                     color: AppTheme.surfaceColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                     elevation: 10,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: SingleChildScrollView(
-                        child: Text(
-                          question.statement,
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
-                          textAlign: TextAlign.center,
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(20.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (parsedStatement.imageName != null) ...[
+                              _QuestionImage(
+                                imagePath: 'assets/${parsedStatement.imageName}',
+                                onTap: () => _showZoomableImageDialog('assets/${parsedStatement.imageName}'),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                            Text(
+                              parsedStatement.statement,
+                              style: Theme.of(
+                                context,
+                              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -71,7 +87,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             ...[1, 2, 3, 4].map((index) {
               final optionText = index == 1
                   ? question.optionA
@@ -100,10 +116,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               }
 
               return Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
+                padding: const EdgeInsets.only(bottom: 12.0),
                 child: SizedBox(
                   width: double.infinity,
-                  height: 56,
                   child: ElevatedButton(
                     onPressed: controller.selectedAnswer != null
                         ? null
@@ -113,8 +128,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: backgroundColor, // Maintain color when disabled
                       disabledForegroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 56),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                     child: (controller.selectedAnswer == index && controller.isCorrect == null)
                         ? const SizedBox(
@@ -134,20 +150,22 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             if (controller.selectedAnswer != null) ...[
               const SizedBox(height: 8),
               if (controller.backendExplanation != null && controller.backendExplanation!.isNotEmpty)
-                Expanded(
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 140),
                   child: Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.blueGrey.withOpacity(0.1),
+                      color: Colors.blueGrey.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.blueGrey.withOpacity(0.3)),
+                      border: Border.all(color: Colors.blueGrey.withValues(alpha: 0.3)),
                     ),
                     child: SingleChildScrollView(
                       child: Text(
                         controller.backendExplanation!,
                         style: Theme.of(
                           context,
-                        ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+                        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, color: Colors.white),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -168,7 +186,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 ),
               ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 4),
           ],
         ),
       ),
@@ -186,5 +204,104 @@ class _GameScreenState extends ConsumerState<GameScreen> {
         Vibration.vibrate();
       }
     } catch (_) {}
+  }
+
+  ({String? imageName, String statement}) _parseStatement(String rawStatement) {
+    final match = _statementImagePattern.firstMatch(rawStatement);
+    if (match == null) {
+      return (imageName: null, statement: rawStatement);
+    }
+
+    final imageName = match.group(1)?.trim();
+    final textOnly = rawStatement.replaceFirst(_statementImagePattern, '').trimLeft();
+    return (imageName: (imageName == null || imageName.isEmpty) ? null : imageName, statement: textOnly);
+  }
+
+  void _showZoomableImageDialog(String imagePath) {
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.black87,
+          insetPadding: const EdgeInsets.all(12),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: InteractiveViewer(
+                  minScale: 1,
+                  maxScale: 5,
+                  child: Image.asset(
+                    imagePath,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, error, stackTrace) => const Center(
+                      child: Text('No se pudo cargar la imagen', style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _QuestionImage extends StatelessWidget {
+  const _QuestionImage({required this.imagePath, required this.onTap});
+
+  final String imagePath;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Stack(
+          alignment: Alignment.bottomRight,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 220),
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, error, stackTrace) => const SizedBox.shrink(),
+                ),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.all(8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(999)),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.zoom_in, size: 16, color: Colors.white),
+                  SizedBox(width: 6),
+                  Text(
+                    'Ampliar',
+                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
