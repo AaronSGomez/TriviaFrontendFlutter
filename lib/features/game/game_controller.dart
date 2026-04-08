@@ -81,6 +81,35 @@ class GameController extends ChangeNotifier {
     }
   }
 
+  Future<void> skipQuestion() async {
+    if (selectedAnswer != null || isLoading) return;
+
+    selectedAnswer = -1; // -1 represents skipped
+    notifyListeners();
+
+    try {
+      final repository = ref.read(gameRepositoryProvider);
+
+      final questionId = currentQuestion!.id!;
+      final timeElapsedSeconds = _questionStartTime != null
+          ? DateTime.now().difference(_questionStartTime!).inSeconds
+          : 0;
+
+      final result = await repository.submitAnswer(sessionId, questionId, 'SKIP', timeElapsedSeconds);
+      isCorrect = false;
+      backendExplanation = result.explanation;
+      correctBackendOption = result.correctAnswer;
+
+      notifyListeners();
+    } catch (e) {
+      selectedAnswer = null;
+      isCorrect = null;
+      backendExplanation = null;
+      correctBackendOption = null;
+      notifyListeners();
+    }
+  }
+
   void nextQuestion() {
     _loadNextQuestion();
   }

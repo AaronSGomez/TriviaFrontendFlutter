@@ -32,7 +32,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     }
 
     // Handle vibration
-    if (controller.isCorrect == false) {
+    if (controller.isCorrect == false && controller.selectedAnswer != -1) {
       _vibrateOnce();
     }
 
@@ -147,6 +147,20 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 ),
               );
             }),
+            if (controller.selectedAnswer == null) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => ref.read(gameControllerProvider(widget.sessionId)).skipQuestion(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text('Saltar pregunta', style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ],
             if (controller.selectedAnswer != null) ...[
               const SizedBox(height: 8),
               if (controller.backendExplanation != null && controller.backendExplanation!.isNotEmpty)
