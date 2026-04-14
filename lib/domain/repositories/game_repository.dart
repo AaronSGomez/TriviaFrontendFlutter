@@ -56,4 +56,9 @@ class GameRepository {
     final response = await _dio.get('/api/v1/session/leaderboard');
     return (response.data as List).map((x) => GameSession.fromJson(x)).toList();
   }
+
+  Future<List<GameSession>> getWeeklyLeaderboard() async {
+    final response = await _dio.get('/api/v1/session/leaderboard/weekly');
+    return (response.data as List).map((x) => GameSession.fromJson(x)).toList();
+  }
 }

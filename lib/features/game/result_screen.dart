@@ -5,9 +5,14 @@ import '../../core/theme.dart';
 import '../../domain/models/game_result.dart';
 import '../../domain/repositories/game_repository.dart';
 import '../dashboard/providers/leaderboard_provider.dart';
+import '../../domain/models/game_session.dart';
 
 final resultProvider = FutureProvider.family<GameResult, String>((ref, sessionId) async {
   return ref.watch(gameRepositoryProvider).finishSession(sessionId);
+});
+
+final weeklyLeaderboardProvider = FutureProvider.autoDispose<List<GameSession>>((ref) async {
+  return ref.watch(gameRepositoryProvider).getWeeklyLeaderboard();
 });
 
 class ResultScreen extends ConsumerWidget {
@@ -18,7 +23,7 @@ class ResultScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final resultAsync = ref.watch(resultProvider(sessionId));
-    final leaderboardAsync = ref.watch(leaderboardProvider);
+    final weeklyLeaderboardAsync = ref.watch(weeklyLeaderboardProvider);
 
     return Scaffold(
       body: Container(
@@ -27,27 +32,42 @@ class ResultScreen extends ConsumerWidget {
         child: SafeArea(
           child: resultAsync.when(
             data: (result) {
-              int? rank;
-              leaderboardAsync.whenData((players) {
-                final sorted = List.of(players)..sort((a, b) => b.score.compareTo(a.score));
-                final index = sorted.indexWhere((p) => p.id == sessionId);
-                if (index != -1) rank = index + 1;
+              int? weeklyRank;
+              String? weeklySubject;
+              weeklyLeaderboardAsync.whenData((sessions) {
+                final currentSessionIndex = sessions.indexWhere((s) => s.id == sessionId);
+                if (currentSessionIndex == -1) return;
+
+                final currentSubject = sessions[currentSessionIndex].subject;
+                weeklySubject = currentSubject;
+
+                // Posición semanal dentro de la misma asignatura.
+                final subjectSessions =
+                    sessions.where((s) => s.subject.toLowerCase() == currentSubject.toLowerCase()).toList()
+                      ..sort((a, b) => b.score.compareTo(a.score));
+
+                final index = subjectSessions.indexWhere((s) => s.id == sessionId);
+                if (index != -1) weeklyRank = index + 1;
               });
 
               Widget graphicWidget;
               String messageText;
+              String? weeklyBadge;
 
-              if (rank == 1) {
+              if (weeklyRank == 1) {
                 graphicWidget = _buildTrophy(Colors.amber, '1');
-                messageText = '¡Enhorabuena, eres el número 1!';
-              } else if (rank == 2) {
+                messageText = '¡Enhorabuena, eres el número 1 esta semana!';
+                weeklyBadge = '🏆 Top 1 Semanal';
+              } else if (weeklyRank == 2) {
                 graphicWidget = _buildTrophy(Colors.grey.shade300, '2');
-                messageText = '¡Excelente, segundo lugar!';
-              } else if (rank == 3) {
+                messageText = '¡Excelente, segundo lugar esta semana!';
+                weeklyBadge = '🥈 Top 2 Semanal';
+              } else if (weeklyRank == 3) {
                 graphicWidget = _buildTrophy(const Color(0xFFCD7F32), '3');
-                messageText = '¡Tercer lugar, muy bien!';
+                messageText = '¡Tercer lugar esta semana, muy bien!';
+                weeklyBadge = '🥉 Top 3 Semanal';
               } else {
-                graphicWidget = _buildRankCircle(rank, result.isPassed);
+                graphicWidget = _buildRankCircle(weeklyRank, result.isPassed);
                 if (result.grade >= 5.0) {
                   messageText = '¡Enhorabuena, has aprobado!';
                 } else {
@@ -70,6 +90,21 @@ class ResultScreen extends ConsumerWidget {
                       ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),
+                  if (weeklyBadge != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.secondaryColor.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppTheme.secondaryColor),
+                      ),
+                      child: Text(
+                        weeklyBadge,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   Card(
                     color: AppTheme.surfaceColor,
@@ -82,6 +117,8 @@ class ResultScreen extends ConsumerWidget {
                           _buildStatRow('Nota (0-10)', result.grade.toStringAsFixed(1)),
                           const Divider(height: 32),
                           _buildStatRow('Ranking Pts', '+${result.score}'),
+                          const Divider(height: 32),
+                          _buildStatRow('Posición Semanal (${weeklySubject ?? 'asignatura'})', '#${weeklyRank ?? '?'}'),
                         ],
                       ),
                     ),

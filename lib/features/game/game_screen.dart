@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:vibration/vibration.dart';
@@ -16,6 +17,8 @@ class GameScreen extends ConsumerStatefulWidget {
 
 class _GameScreenState extends ConsumerState<GameScreen> {
   bool _navigated = false;
+  late int _lastQuestionIndex = 0;
+  bool _vibrationTriggeredForCurrentQuestion = false;
 
   static final RegExp _statementImagePattern = RegExp(r'^\s*\[IMAGE:([^\]]+)\]\s*', caseSensitive: false);
 
@@ -31,9 +34,19 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       });
     }
 
-    // Handle vibration
-    if (controller.isCorrect == false && controller.selectedAnswer != -1) {
-      _vibrateOnce();
+    // Trigger vibration on wrong answer (run in background to avoid UI blocking)
+    if (controller.isCorrect == false && controller.selectedAnswer != -1 && !_vibrationTriggeredForCurrentQuestion) {
+      _vibrationTriggeredForCurrentQuestion = true;
+      // Run vibration in next frame to avoid blocking UI
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _vibrateInBackground();
+      });
+    }
+
+    // Reset vibration flag when question changes
+    if (controller.questionIndex != _lastQuestionIndex) {
+      _lastQuestionIndex = controller.questionIndex;
+      _vibrationTriggeredForCurrentQuestion = false;
     }
 
     if (controller.isLoading && controller.currentQuestion == null) {
@@ -76,7 +89,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                               parsedStatement.statement,
                               style: Theme.of(
                                 context,
-                              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+                              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500, color: Colors.white),
                               textAlign: TextAlign.center,
                             ),
                           ],
@@ -140,7 +153,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                           )
                         : Text(
                             optionText,
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: Colors.white),
                             textAlign: TextAlign.center,
                           ),
                   ),
@@ -179,7 +192,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                         controller.backendExplanation!,
                         style: Theme.of(
                           context,
-                        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, color: Colors.white),
+                        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w400, color: Colors.white),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -207,16 +220,17 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     );
   }
 
-  bool _hasVibrated = false;
-
-  void _vibrateOnce() async {
-    if (_hasVibrated) return;
-    _hasVibrated = true;
+  /// Trigger vibration in background without blocking UI
+  void _vibrateInBackground() {
+    if (kIsWeb) return;
     try {
-      final hasVibrator = await Vibration.hasVibrator();
-      if (hasVibrator == true) {
-        Vibration.vibrate();
-      }
+      Vibration.hasVibrator()
+          .then((hasVibrator) {
+            if (hasVibrator == true) {
+              Vibration.vibrate(duration: 200).catchError((_) {});
+            }
+          })
+          .catchError((_) {});
     } catch (_) {}
   }
 

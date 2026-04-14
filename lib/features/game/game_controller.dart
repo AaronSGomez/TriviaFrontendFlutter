@@ -19,6 +19,7 @@ class GameController extends ChangeNotifier {
   String? backendExplanation;
   String? correctBackendOption;
   bool isFinished = false;
+  bool isSessionFinished = false;
   DateTime? _questionStartTime;
 
   GameController(this.ref, this.sessionId) {
@@ -27,6 +28,7 @@ class GameController extends ChangeNotifier {
 
   Future<void> _loadNextQuestion() async {
     isLoading = true;
+    currentQuestion = null;
     selectedAnswer = null;
     isCorrect = null;
     backendExplanation = null;
@@ -70,8 +72,15 @@ class GameController extends ChangeNotifier {
       isCorrect = result.isCorrect;
       backendExplanation = result.explanation;
       correctBackendOption = result.correctAnswer;
-
+      isSessionFinished = result.isSessionFinished;
+      // Single notify after all state changes to reduce UI rebuilds
       notifyListeners();
+
+      // Auto-advance to next question if session is finished
+      if (isSessionFinished) {
+        isFinished = true;
+        notifyListeners();
+      }
     } catch (e) {
       selectedAnswer = null;
       isCorrect = null;
@@ -99,8 +108,15 @@ class GameController extends ChangeNotifier {
       isCorrect = false;
       backendExplanation = result.explanation;
       correctBackendOption = result.correctAnswer;
-
+      isSessionFinished = result.isSessionFinished;
+      // Single notify after all state changes to reduce UI rebuilds
       notifyListeners();
+
+      // Auto-advance to next question if session is finished
+      if (isSessionFinished) {
+        isFinished = true;
+        notifyListeners();
+      }
     } catch (e) {
       selectedAnswer = null;
       isCorrect = null;

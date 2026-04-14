@@ -4,20 +4,13 @@ import '../../../domain/repositories/game_repository.dart';
 import '../../../domain/repositories/auth_repository.dart';
 
 final leaderboardProvider = FutureProvider.autoDispose<List<GameSession>>((ref) async {
-  final leaderboard = await ref.watch(gameRepositoryProvider).getLeaderboard();
-  final now = DateTime.now();
-  final sevenDaysAgo = now.subtract(const Duration(days: 7));
-
-  final recentLeaderboard = leaderboard.where((session) {
-    final sessionDate = session.finishedAt ?? session.startedAt;
-    return !sessionDate.isBefore(sevenDaysAgo);
-  }).toList();
+  final leaderboard = await ref.watch(gameRepositoryProvider).getWeeklyLeaderboard();
 
   try {
     final players = await ref.watch(authRepositoryProvider).getRanking();
     final playerMap = {for (var p in players) p.id: p.name};
 
-    final enriched = recentLeaderboard.map((session) {
+    final enriched = leaderboard.map((session) {
       if (playerMap.containsKey(session.playerId)) {
         return session.copyWith(playerName: playerMap[session.playerId]);
       }
@@ -38,7 +31,7 @@ final leaderboardProvider = FutureProvider.autoDispose<List<GameSession>>((ref) 
 
     return enriched;
   } catch (e) {
-    recentLeaderboard.sort((a, b) {
+    leaderboard.sort((a, b) {
       final bySubject = a.subject.toLowerCase().compareTo(b.subject.toLowerCase());
       if (bySubject != 0) return bySubject;
 
@@ -50,6 +43,6 @@ final leaderboardProvider = FutureProvider.autoDispose<List<GameSession>>((ref) 
       return bDate.compareTo(aDate);
     });
 
-    return recentLeaderboard;
+    return leaderboard;
   }
 });

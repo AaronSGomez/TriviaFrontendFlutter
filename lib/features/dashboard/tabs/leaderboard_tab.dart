@@ -16,7 +16,7 @@ class LeaderboardTab extends ConsumerWidget {
     return leaderboardAsync.when(
       data: (players) {
         if (players.isEmpty) {
-          return const Center(child: Text('No hay partidas en los ultimos 7 dias.'));
+          return const Center(child: Text('No hay partidas esta semana.'));
         }
 
         final groupedBySubject = <String, List<GameSession>>{};
@@ -40,7 +40,7 @@ class LeaderboardTab extends ConsumerWidget {
                   border: Border.all(color: Colors.white12),
                 ),
                 child: const Text(
-                  'Ranking por asignaturas (ultimos 7 dias) · Top 10 por asignatura',
+                  'Ranking por asignaturas (esta semana) · Top 10 por asignatura',
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
