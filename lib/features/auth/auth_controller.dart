@@ -144,11 +144,9 @@ class AuthController extends ChangeNotifier {
   Future<void> _authenticateWebWithFirebasePopup() async {
     try {
       final firebaseAuth = FirebaseAuth.instance;
-      
+
       debugPrint('[GoogleAuth] Step 1: Initiating Firebase popup sign-in...');
-      final userCredential = await firebaseAuth.signInWithPopup(
-        GoogleAuthProvider(),
-      );
+      final userCredential = await firebaseAuth.signInWithPopup(GoogleAuthProvider());
 
       final user = userCredential.user;
       if (user == null) {
@@ -156,10 +154,10 @@ class AuthController extends ChangeNotifier {
       }
 
       debugPrint('[GoogleAuth] Step 2: Firebase user authenticated: ${user.email}');
-      
+
       debugPrint('[GoogleAuth] Step 3: Getting Firebase ID token...');
       final firebaseIdToken = await user.getIdToken(true);
-      
+
       if (firebaseIdToken == null || firebaseIdToken.isEmpty) {
         throw const AuthException('firebase-token-missing', 'Firebase no devolvio un token valido.');
       }
@@ -168,7 +166,7 @@ class AuthController extends ChangeNotifier {
       await _completeBackendGoogleLogin(firebaseIdToken);
     } on FirebaseAuthException catch (e) {
       String friendlyMessage = 'Error en Google Sign-In: ${e.message}';
-      
+
       if (e.code == 'popup-closed-by-user') {
         throw const AuthException('google-canceled', 'Inicio de sesión con Google cancelado.');
       } else if (e.code == 'network-request-failed') {
@@ -176,7 +174,7 @@ class AuthController extends ChangeNotifier {
       } else if (e.code == 'credential-already-in-use') {
         friendlyMessage = 'Esta cuenta ya está siendo usada. Cierra sesión primero.';
       }
-      
+
       throw AuthException('firebase-error', friendlyMessage);
     }
   }
