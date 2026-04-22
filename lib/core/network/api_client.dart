@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:math';
 import '../providers.dart';
 import '../router/app_router.dart';
 import '../security/jwt_utils.dart';
@@ -18,11 +19,21 @@ final dioProvider = Provider<Dio>((ref) {
   );
 
   final dio = Dio(requestOptions);
+  final random = Random();
+
+  String generateRequestId() {
+    final now = DateTime.now().microsecondsSinceEpoch;
+    final suffix = random.nextInt(1 << 20).toRadixString(16);
+    return 'app-$now-$suffix';
+  }
 
   // Auth interceptor: attaches JWT token if available
   dio.interceptors.add(
     InterceptorsWrapper(
       onRequest: (options, handler) {
+        options.extra['requestStartAt'] = DateTime.now().microsecondsSinceEpoch;
+        options.headers['X-Request-Id'] ??= generateRequestId();
+
         final prefs = ref.read(sharedPreferencesProvider);
         final token = prefs.getString('jwt_token');
 
@@ -70,6 +81,35 @@ final dioProvider = Provider<Dio>((ref) {
           true,
         );
       },
+      onResponse: (response, handler) {
+        final startedAt = response.requestOptions.extra['requestStartAt'] as int?;
+        final elapsedMs = startedAt == null ? -1 : (DateTime.now().microsecondsSinceEpoch - startedAt) / 1000;
+
+        if (kDebugMode) {
+          debugPrint(
+            '[HTTP] ${response.requestOptions.method} ${response.requestOptions.path} '
+            'status=${response.statusCode} elapsedMs=${elapsedMs >= 0 ? elapsedMs.toStringAsFixed(1) : 'n/a'} '
+            'requestId=${response.requestOptions.headers['X-Request-Id']}',
+          );
+        }
+
+        handler.next(response);
+      },
+      onError: (error, handler) {
+        final startedAt = error.requestOptions.extra['requestStartAt'] as int?;
+        final elapsedMs = startedAt == null ? -1 : (DateTime.now().microsecondsSinceEpoch - startedAt) / 1000;
+
+        if (kDebugMode) {
+          debugPrint(
+            '[HTTP-ERR] ${error.requestOptions.method} ${error.requestOptions.path} '
+            'status=${error.response?.statusCode} elapsedMs=${elapsedMs >= 0 ? elapsedMs.toStringAsFixed(1) : 'n/a'} '
+            'type=${error.type} requestId=${error.requestOptions.headers['X-Request-Id']} '
+            'message=${error.message}',
+          );
+        }
+
+        handler.next(error);
+      },
     ),
   );
 
@@ -81,10 +121,10 @@ final dioProvider = Provider<Dio>((ref) {
     dio.interceptors.add(
       LogInterceptor(
         request: true,
-        requestHeader: true,
-        requestBody: true,
-        responseHeader: true,
-        responseBody: true,
+        requestHeader: false,
+        requestBody: false,
+        responseHeader: false,
+        responseBody: false,
         error: true,
       ),
     );

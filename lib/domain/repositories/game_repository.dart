@@ -14,6 +14,12 @@ class GameRepository {
   final Dio _dio;
   GameRepository(this._dio);
 
+  void _validateSessionId(String sessionId) {
+    if (sessionId.trim().isEmpty) {
+      throw ArgumentError('sessionId cannot be empty');
+    }
+  }
+
   Future<GameSession> startSession(String playerId, String subject, int totalQuestions) async {
     final response = await _dio.post(
       '/api/v1/session',
@@ -23,6 +29,7 @@ class GameRepository {
   }
 
   Future<Question?> getNextQuestion(String sessionId) async {
+    _validateSessionId(sessionId);
     try {
       final response = await _dio.get('/api/v1/session/$sessionId/next-question');
       return Question.fromJson(response.data);
@@ -40,6 +47,7 @@ class GameRepository {
     String selectedOption,
     int timeElapsedSeconds,
   ) async {
+    _validateSessionId(sessionId);
     final response = await _dio.post(
       '/api/v1/session/$sessionId/answer',
       data: {'questionId': questionId, 'selectedOption': selectedOption, 'timeElapsedSeconds': timeElapsedSeconds},
@@ -48,6 +56,7 @@ class GameRepository {
   }
 
   Future<GameResult> finishSession(String sessionId) async {
+    _validateSessionId(sessionId);
     final response = await _dio.post('/api/v1/session/$sessionId/finish');
     return GameResult.fromJson(response.data);
   }

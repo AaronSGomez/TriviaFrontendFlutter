@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../domain/models/game_result.dart';
 import '../../domain/repositories/game_repository.dart';
-import '../dashboard/providers/leaderboard_provider.dart';
 import '../../domain/models/game_session.dart';
+import 'game_controller.dart';
 
 final resultProvider = FutureProvider.family<GameResult, String>((ref, sessionId) async {
   return ref.watch(gameRepositoryProvider).finishSession(sessionId);
@@ -24,6 +24,7 @@ class ResultScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final resultAsync = ref.watch(resultProvider(sessionId));
     final weeklyLeaderboardAsync = ref.watch(weeklyLeaderboardProvider);
+    final gameController = ref.watch(gameControllerProvider(sessionId));
 
     return Scaffold(
       body: Container(
@@ -75,67 +76,88 @@ class ResultScreen extends ConsumerWidget {
                 }
               }
 
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Hero(tag: 'logo', child: graphicWidget),
-                  const SizedBox(height: 32),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text(
-                      messageText,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                  ),
-                  if (weeklyBadge != null) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.secondaryColor.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppTheme.secondaryColor),
-                      ),
+              return SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Hero(tag: 'logo', child: graphicWidget),
+                    const SizedBox(height: 32),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: Text(
-                        weeklyBadge,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                        messageText,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                    if (weeklyBadge != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondaryColor.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppTheme.secondaryColor),
+                        ),
+                        child: Text(
+                          weeklyBadge,
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    Card(
+                      color: AppTheme.surfaceColor,
+                      margin: const EdgeInsets.symmetric(horizontal: 32),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24.0),
+                        child: Column(
+                          children: [
+                            _buildStatRow('Nota (0-10)', result.grade.toStringAsFixed(1)),
+                            const Divider(height: 32),
+                            _buildStatRow('Ranking Pts', '+${result.score}'),
+                            const Divider(height: 32),
+                            _buildStatRow('Posición Semanal (${weeklySubject ?? 'asignatura'})', '#${weeklyRank ?? '?'}'),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (gameController.failedQuestions.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton(
+                            onPressed: () => context.push('/review-failed', extra: sessionId),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Colors.white70),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: Text('Repasar preguntas falladas (${gameController.failedQuestions.length})'),
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 48),
+                    ElevatedButton(
+                      onPressed: () => context.go('/dashboard'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppTheme.primaryColor,
+                      ),
+                      child: const Text(
+                        'Volver al Dashboard',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
-                  const SizedBox(height: 24),
-                  Card(
-                    color: AppTheme.surfaceColor,
-                    margin: const EdgeInsets.symmetric(horizontal: 32),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        children: [
-                          _buildStatRow('Nota (0-10)', result.grade.toStringAsFixed(1)),
-                          const Divider(height: 32),
-                          _buildStatRow('Ranking Pts', '+${result.score}'),
-                          const Divider(height: 32),
-                          _buildStatRow('Posición Semanal (${weeklySubject ?? 'asignatura'})', '#${weeklyRank ?? '?'}'),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-                  ElevatedButton(
-                    onPressed: () => context.go('/dashboard'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppTheme.primaryColor,
-                    ),
-                    child: const Text(
-                      'Volver al Dashboard',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
+                ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator(color: Colors.white)),
@@ -157,12 +179,36 @@ class ResultScreen extends ConsumerWidget {
   }
 
   Widget _buildStatRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 20)),
-        Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 320;
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Text(
+                label,
+                style: TextStyle(fontSize: isCompact ? 16 : 20),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Flexible(
+              flex: 2,
+              child: Text(
+                value,
+                textAlign: TextAlign.right,
+                style: TextStyle(fontSize: isCompact ? 20 : 24, fontWeight: FontWeight.bold),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,31 +13,10 @@ class WelcomeScreen extends ConsumerStatefulWidget {
 }
 
 class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _mailController = TextEditingController();
-  final _passwordController = TextEditingController();
-
-  bool _isRegisterMode = true;
-  bool _obscurePassword = true;
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _mailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  void _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+  void _continueWithGoogle() async {
     try {
       final controller = ref.read(authControllerProvider.notifier);
-      if (_isRegisterMode) {
-        await controller.register(_nameController.text.trim(), _mailController.text.trim(), _passwordController.text);
-      } else {
-        await controller.login(_mailController.text.trim(), _passwordController.text);
-      }
+      await controller.signInWithGoogle();
       if (mounted) context.go('/dashboard');
     } catch (e) {
       if (mounted) {
@@ -51,20 +31,32 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   String _friendlyError(String raw) {
     final lower = raw.toLowerCase();
 
-    if (lower.contains('contraseña o correo incorrectos') ||
-        lower.contains('invalid-credentials') ||
-        lower.contains('401') ||
-        lower.contains('unauthorized') ||
-        lower.contains('formatexception')) {
-      return 'Contraseña incorrecta. Verifica tus credenciales e inténtalo de nuevo.';
+    if (lower.contains('google no devolvio un token valido') ||
+        lower.contains('google-token-missing') ||
+        lower.contains('google-login-failed')) {
+      return 'No se pudo completar el acceso con Google. Intentalo de nuevo.';
     }
 
-    if (lower.contains('409') || lower.contains('conflict')) {
-      return 'Ya existe una cuenta con ese correo.';
+    if (lower.contains('canceled') || lower.contains('interrupted') || lower.contains('uiunavailable')) {
+      return 'No se pudo completar el acceso de Google en web. Revisa cookies de terceros y bloqueadores, o prueba en modo incognito.';
     }
 
-    if (lower.contains('token caducado') || lower.contains('no hay sesión activa')) {
-      return 'Tu sesión ha expirado. Inicia sesión o regístrate para continuar.';
+    if (lower.contains('google-not-supported-windows') ||
+        lower.contains('google-not-supported-platform') ||
+        lower.contains('not available on this platform')) {
+      return 'Google Sign-In no esta disponible en Windows nativo. Usa la version web.';
+    }
+
+    if (lower.contains('no se pudo validar la cuenta de google') || lower.contains('invalidgoogletokenexception')) {
+      return 'La autenticacion de Google no fue valida. Vuelve a intentarlo.';
+    }
+
+    if (lower.contains('cancel')) {
+      return 'Inicio de sesion cancelado.';
+    }
+
+    if (lower.contains('token caducado') || lower.contains('no hay sesion activa')) {
+      return 'Tu sesion ha expirado. Inicia sesion con Google para continuar.';
     }
 
     return raw;
@@ -72,6 +64,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authControllerProvider, (previous, next) {
+      if ((previous?.player == null) && next.player != null && mounted) {
+        context.go('/dashboard');
+      }
+    });
+
     final authState = ref.watch(authControllerProvider);
 
     return Scaffold(
@@ -140,87 +138,32 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                           color: AppTheme.backgroundColor,
                           child: Padding(
                             padding: const EdgeInsets.all(24.0),
-                            child: Form(
-                              key: _formKey,
-                              child: Column(
-                                children: [
-                                  Text(
-                                    _isRegisterMode ? 'Registro' : 'Iniciar sesión',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 24),
-                                  // Name field — only in register mode
-                                  if (_isRegisterMode) ...[
-                                    TextFormField(
-                                      controller: _nameController,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Nombre de usuario',
-                                        prefixIcon: Icon(Icons.person),
-                                      ),
-                                      validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
-                                    ),
-                                    const SizedBox(height: 16),
-                                  ],
-                                  TextFormField(
-                                    controller: _mailController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Correo electrónico',
-                                      prefixIcon: Icon(Icons.email),
-                                    ),
-                                    keyboardType: TextInputType.emailAddress,
-                                    validator: (v) {
-                                      if (v == null || v.isEmpty) return 'Requerido';
-                                      final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                                      if (!emailRegex.hasMatch(v)) return 'Formato de correo no válido';
-                                      return null;
-                                    },
-                                  ),
-                                  const SizedBox(height: 16),
-                                  TextFormField(
-                                    controller: _passwordController,
-                                    decoration: InputDecoration(
-                                      labelText: 'Contraseña',
-                                      prefixIcon: const Icon(Icons.lock),
-                                      suffixIcon: IconButton(
-                                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                                      ),
-                                    ),
-                                    obscureText: _obscurePassword,
-                                    validator: (v) {
-                                      if (v == null || v.isEmpty) return 'Requerido';
-                                      if (_isRegisterMode && v.length < 6) return 'Mínimo 6 caracteres';
-                                      return null;
-                                    },
-                                  ),
-                                  const SizedBox(height: 32),
+                            child: Column(
+                              children: [
+                                Text(
+                                  'Acceso con Google',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 16),
+                                const Text(
+                                  'Usa tu cuenta de Gmail para entrar. Guardaremos solo tu nombre y correo.',
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 28),
+                                if (kIsWeb)
+                                  const _GoogleWebButton()
+                                else
                                   SizedBox(
                                     width: double.infinity,
-                                    child: ElevatedButton(
-                                      onPressed: _submit,
-                                      child: Text(
-                                        _isRegisterMode ? 'Registrarse' : 'Entrar',
-                                        style: const TextStyle(fontSize: 18),
-                                      ),
+                                    child: ElevatedButton.icon(
+                                      onPressed: _continueWithGoogle,
+                                      icon: const Icon(Icons.login),
+                                      label: const Text('Continuar con Google', style: TextStyle(fontSize: 18)),
                                     ),
                                   ),
-                                  const SizedBox(height: 12),
-                                  TextButton(
-                                    onPressed: () => setState(() {
-                                      _isRegisterMode = !_isRegisterMode;
-                                      _formKey.currentState?.reset();
-                                    }),
-                                    child: Text(
-                                      _isRegisterMode
-                                          ? '¿Ya tienes cuenta? Inicia sesión'
-                                          : '¿No tienes cuenta? Regístrate',
-                                      style: TextStyle(color: AppTheme.primaryColor),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              ],
                             ),
                           ),
                         ),
@@ -232,6 +175,36 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _GoogleWebButton extends ConsumerWidget {
+  const _GoogleWebButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () async {
+          final controller = ref.read(authControllerProvider.notifier);
+          try {
+            await controller.signInWithGoogle();
+            if (context.mounted) {
+              context.go('/dashboard');
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppTheme.errorColor));
+            }
+          }
+        },
+        icon: const Icon(Icons.login),
+        label: const Text('Continuar con Google', style: TextStyle(fontSize: 18)),
       ),
     );
   }

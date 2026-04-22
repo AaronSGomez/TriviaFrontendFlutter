@@ -41,6 +41,26 @@ class AuthRepository {
     }
   }
 
+  /// Logs in/registers using a Firebase ID token validated by the backend.
+  /// Optionally sends Google ID token for backward compatibility while backend migrates.
+  Future<AuthResult> loginWithGoogle(String firebaseIdToken, {String? googleIdToken}) async {
+    try {
+      final payload = <String, dynamic>{'idToken': firebaseIdToken};
+      if (googleIdToken != null && googleIdToken.isNotEmpty) {
+        payload['googleIdToken'] = googleIdToken;
+      }
+
+      final response = await _postAuth('/api/auth/google', payload);
+      return AuthResult.fromJson(response);
+    } on AuthException {
+      rethrow;
+    } on DioException catch (e) {
+      throw AuthException('google-login-failed', _extractServerMessage(e.response?.data));
+    } on FormatException {
+      throw const AuthException('google-login-failed', 'No se pudo completar el acceso con Google.');
+    }
+  }
+
   Future<Map<String, dynamic>> _postAuth(String endpoint, Map<String, dynamic> payload) async {
     try {
       final response = await _dio.post(
@@ -63,8 +83,28 @@ class AuthRepository {
       if (status == 401 || status == 403) {
         throw const AuthException('invalid-credentials', 'Contraseña o correo incorrectos.');
       }
-      throw AuthException('network-error', _extractServerMessage(e.response?.data));
+      throw AuthException('network-error', _extractDioMessage(e));
     }
+  }
+
+  String _extractDioMessage(DioException e) {
+    final raw = e.message?.toLowerCase() ?? '';
+    if (raw.contains('failed host lookup') || raw.contains('no address associated with hostname')) {
+      return 'No se pudo resolver el dominio del servidor. Verifica conexion DNS o red y vuelve a intentar.';
+    }
+    if (raw.contains('connection timed out') || raw.contains('timed out')) {
+      return 'El servidor tardo demasiado en responder. Intentalo de nuevo.';
+    }
+    if (raw.contains('certificate') || raw.contains('handshake')) {
+      return 'No se pudo establecer una conexion segura con el servidor.';
+    }
+
+    final serverMessage = _extractServerMessage(e.response?.data);
+    if (serverMessage != 'No fue posible completar la autenticación.') {
+      return serverMessage;
+    }
+
+    return 'No fue posible conectar con el servidor. Revisa tu conexion e intentalo de nuevo.';
   }
 
   Map<String, dynamic> _asJsonMap(dynamic rawData) {

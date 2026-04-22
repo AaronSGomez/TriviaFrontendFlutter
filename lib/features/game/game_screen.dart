@@ -102,13 +102,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             ),
             const SizedBox(height: 16),
             ...[1, 2, 3, 4].map((index) {
-              final optionText = index == 1
-                  ? question.optionA
-                  : index == 2
-                  ? question.optionB
-                  : index == 3
-                  ? question.optionC
-                  : question.optionD;
+              final optionText = controller.optionTextForIndex(index);
               Color backgroundColor = AppTheme.surfaceColor;
 
               if (controller.selectedAnswer != null) {
@@ -121,8 +115,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   }
                 } else if (controller.correctBackendOption != null) {
                   // Another button that happens to be the correct one
-                  final optionKeys = ['optionA', 'optionB', 'optionC', 'optionD'];
-                  if (optionKeys[index - 1] == controller.correctBackendOption) {
+                  if (controller.optionKeyForIndex(index) == controller.correctBackendOption) {
                     backgroundColor = AppTheme.successColor;
                   }
                 }

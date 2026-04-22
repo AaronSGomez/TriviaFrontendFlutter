@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/models/question.dart';
 import '../../domain/repositories/game_repository.dart';
+import 'question_review_item.dart';
 
 final gameControllerProvider = ChangeNotifierProvider.family<GameController, String>((ref, sessionId) {
   return GameController(ref, sessionId);
@@ -18,9 +20,12 @@ class GameController extends ChangeNotifier {
   bool? isCorrect;
   String? backendExplanation;
   String? correctBackendOption;
+  List<String> shuffledOptionKeys = const [];
   bool isFinished = false;
   bool isSessionFinished = false;
+  final List<QuestionReviewItem> failedQuestions = [];
   DateTime? _questionStartTime;
+  final Random _random = Random();
 
   GameController(this.ref, this.sessionId) {
     _loadNextQuestion();
@@ -33,6 +38,7 @@ class GameController extends ChangeNotifier {
     isCorrect = null;
     backendExplanation = null;
     correctBackendOption = null;
+    shuffledOptionKeys = const [];
     notifyListeners();
 
     try {
@@ -42,6 +48,9 @@ class GameController extends ChangeNotifier {
         isFinished = true;
       } else {
         currentQuestion = question;
+        final keys = ['optionA', 'optionB', 'optionC', 'optionD'];
+        keys.shuffle(_random);
+        shuffledOptionKeys = List.unmodifiable(keys);
         questionIndex++;
         _questionStartTime = DateTime.now();
       }
@@ -62,7 +71,7 @@ class GameController extends ChangeNotifier {
     try {
       final repository = ref.read(gameRepositoryProvider);
 
-      final selectedOptionStr = ['optionA', 'optionB', 'optionC', 'optionD'][answerIndex - 1];
+        final selectedOptionStr = optionKeyForIndex(answerIndex);
       final questionId = currentQuestion!.id!;
       final timeElapsedSeconds = _questionStartTime != null
           ? DateTime.now().difference(_questionStartTime!).inSeconds
@@ -73,6 +82,20 @@ class GameController extends ChangeNotifier {
       backendExplanation = result.explanation;
       correctBackendOption = result.correctAnswer;
       isSessionFinished = result.isSessionFinished;
+
+      if (result.isCorrect == false) {
+        failedQuestions.add(
+          QuestionReviewItem(
+            question: currentQuestion!,
+            selectedAnswerIndex: answerIndex,
+            selectedOptionKey: selectedOptionStr,
+            isCorrect: result.isCorrect,
+            correctOptionKey: result.correctAnswer,
+            explanation: result.explanation,
+            timeElapsedSeconds: timeElapsedSeconds,
+          ),
+        );
+      }
       // Single notify after all state changes to reduce UI rebuilds
       notifyListeners();
 
@@ -109,6 +132,18 @@ class GameController extends ChangeNotifier {
       backendExplanation = result.explanation;
       correctBackendOption = result.correctAnswer;
       isSessionFinished = result.isSessionFinished;
+
+      failedQuestions.add(
+        QuestionReviewItem(
+          question: currentQuestion!,
+          selectedAnswerIndex: -1,
+          selectedOptionKey: 'SKIP',
+          isCorrect: false,
+          correctOptionKey: result.correctAnswer,
+          explanation: result.explanation,
+          timeElapsedSeconds: timeElapsedSeconds,
+        ),
+      );
       // Single notify after all state changes to reduce UI rebuilds
       notifyListeners();
 
@@ -128,5 +163,29 @@ class GameController extends ChangeNotifier {
 
   void nextQuestion() {
     _loadNextQuestion();
+  }
+
+  String optionKeyForIndex(int index) {
+    if (index < 1 || index > 4 || shuffledOptionKeys.length != 4) {
+      return 'optionA';
+    }
+    return shuffledOptionKeys[index - 1];
+  }
+
+  String optionTextForIndex(int index) {
+    return optionTextByKey(optionKeyForIndex(index));
+  }
+
+  String optionTextByKey(String key) {
+    final question = currentQuestion;
+    if (question == null) return '';
+
+    return switch (key) {
+      'optionA' => question.optionA,
+      'optionB' => question.optionB,
+      'optionC' => question.optionC,
+      'optionD' => question.optionD,
+      _ => '',
+    };
   }
 }
