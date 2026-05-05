@@ -12,6 +12,8 @@ class GameSession {
   final double grade;
   final bool passed;
   final String? playerName;
+  final String? sessionType;
+  final int? reviewQuestionCount;
 
   const GameSession({
     required this.id,
@@ -27,6 +29,8 @@ class GameSession {
     required this.grade,
     required this.passed,
     this.playerName,
+    this.sessionType,
+    this.reviewQuestionCount,
   });
 
   GameSession copyWith({
@@ -43,6 +47,8 @@ class GameSession {
     double? grade,
     bool? passed,
     String? playerName,
+    String? sessionType,
+    int? reviewQuestionCount,
   }) {
     return GameSession(
       id: id ?? this.id,
@@ -58,6 +64,8 @@ class GameSession {
       grade: grade ?? this.grade,
       passed: passed ?? this.passed,
       playerName: playerName ?? this.playerName,
+      sessionType: sessionType ?? this.sessionType,
+      reviewQuestionCount: reviewQuestionCount ?? this.reviewQuestionCount,
     );
   }
 
@@ -76,6 +84,8 @@ class GameSession {
       grade: (json['grade'] as num?)?.toDouble() ?? 0.0,
       passed: json['passed'] as bool? ?? false,
       playerName: json['playerName'] as String?,
+      sessionType: json['sessionType'] as String?,
+      reviewQuestionCount: json['reviewQuestionCount'] as int?,
     );
   }
 
@@ -93,5 +103,7 @@ class GameSession {
     'grade': grade,
     'passed': passed,
     if (playerName != null) 'playerName': playerName,
+    if (sessionType != null) 'sessionType': sessionType,
+    if (reviewQuestionCount != null) 'reviewQuestionCount': reviewQuestionCount,
   };
 }

@@ -29,8 +29,39 @@ class _PlayTabState extends ConsumerState<PlayTab> {
       final session = await ref
           .read(gameRepositoryProvider)
           .startSession(player.id, _selectedSubject!, 30); // Hardcoded to 30
+      
       if (mounted) {
-        context.go('/game', extra: session.id);
+        if (session.sessionType == 'REVIEW') {
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Row(
+                children: [
+                  Icon(Icons.auto_awesome, color: AppTheme.secondaryColor),
+                  SizedBox(width: 10),
+                  Text('¡Sesión de Repaso!'),
+                ],
+              ),
+              content: Text(
+                'Vas a repasar las ${session.reviewQuestionCount ?? 0} preguntas que fallaste anteriormente.\n\n'
+                'El test se completará con nuevas hasta llegar a las 30 preguntas, ¡mucha suerte!',
+                style: const TextStyle(fontSize: 16),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('¡ENTENDIDO!', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        if (mounted) {
+          context.go('/game', extra: session.id);
+        }
       }
     } catch (e) {
       if (mounted) {
